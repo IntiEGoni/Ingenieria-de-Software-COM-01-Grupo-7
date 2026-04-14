@@ -108,16 +108,30 @@ function showDetailView(workshop) {
             <p>📍 <strong>Módulo:</strong> ${workshop.locationData.modulo} (de 3 módulos)</p>
             <p>🚪 <strong>Aula:</strong> ${workshop.locationData.aula} (de 5 aulas)</p>
         `;
-    } else if (workshop.type === 'particular') {
-        dynamicInfo.innerHTML = `
-            <h4>Ubicación y Horarios</h4>
-            <p>📍 <strong>Dirección:</strong> ${workshop.locationData.address}</p>
-            <p>🕒 <strong>Horarios de atención:</strong> ${workshop.locationData.hours}</p>
-            <div id="map"></div>
-        `;
-        
-        initMap(workshop.locationData.lat, workshop.locationData.lng);
-    }
+   } else if (workshop.type === 'particular') {
+    const loc = workshop.locationData;
+    dynamicInfo.innerHTML = `
+        <h4>Ubicación y Horarios</h4>
+        <p>📍 <strong>Dirección:</strong> ${loc.address}${loc.partido ? ', ' + loc.partido : ''}</p>
+        <p>🕒 <strong>Horarios de atención:</strong> ${loc.hours}</p>
+        <p id="map-status" style="color:#7f8c8d; font-size:13px; margin-top:8px;">🔎 Normalizando dirección con USIG...</p>
+        <div id="map"></div>
+    `;
+
+    // Pedimos a USIG la normalización + geocodificación
+    normalizarDireccion(loc.address, loc.partido).then(result => {
+        const statusEl = document.getElementById('map-status');
+        if (result.ok) {
+            statusEl.innerHTML = `✅ <strong>Dirección normalizada:</strong> ${result.direccionNormalizada}` +
+                                 (result.partido ? ` (${result.partido})` : '');
+            statusEl.style.color = '#27ae60';
+            initMap(result.lat, result.lng);
+        } else {
+            statusEl.innerHTML = `⚠️ No se pudo normalizar la dirección (${result.error}).`;
+            statusEl.style.color = '#c0392b';
+            document.getElementById('map').style.display = 'none';
+        }
+    });
 }
 
 // 5. LÓGICA DE LEAFLET MAP
